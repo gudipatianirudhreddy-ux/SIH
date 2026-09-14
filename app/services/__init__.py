@@ -1,11 +1,9 @@
-from app.services.profile import (
-    create_profile,
-    get_profile_by_user_id,
-    update_profile,
-)
+from app.services import issue, media_storage, ml_classifier, profile, solution
 
 __all__ = [
-    "get_profile_by_user_id",
-    "create_profile",
-    "update_profile",
+    "profile",
+    "issue",
+    "solution",
+    "ml_classifier",
+    "media_storage",
 ]

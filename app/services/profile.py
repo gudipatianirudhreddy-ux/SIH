@@ -25,6 +25,9 @@ def create_profile(db: Session, user_id: uuid.UUID, profile_data: ProfileCreate)
         id=user_id,
         name=profile_data.name,
         role=role_val,
+        phone_number=profile_data.phone_number,
+        avatar_url=profile_data.avatar_url,
+        location=profile_data.location,
     )
     db.add(db_profile)
     db.commit()
@@ -44,6 +47,12 @@ def update_profile(db: Session, user_id: uuid.UUID, profile_data: ProfileUpdate)
         db_profile.name = profile_data.name
     if profile_data.role is not None:
         db_profile.role = profile_data.role.value if isinstance(profile_data.role, UserRole) else str(profile_data.role)
+    if profile_data.phone_number is not None:
+        db_profile.phone_number = profile_data.phone_number
+    if profile_data.avatar_url is not None:
+        db_profile.avatar_url = profile_data.avatar_url
+    if profile_data.location is not None:
+        db_profile.location = profile_data.location
 
     db.commit()
     db.refresh(db_profile)
