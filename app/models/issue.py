@@ -32,6 +32,12 @@ class Issue(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     address = Column(Text, nullable=True)
+    assigned_student_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -45,6 +51,7 @@ class Issue(Base):
     )
 
     reporter = relationship("Profile", foreign_keys=[reporter_id])
+    assigned_student = relationship("Profile", foreign_keys=[assigned_student_id], lazy="selectin")
     media = relationship(
         "IssueMedia",
         back_populates="issue",
@@ -53,6 +60,24 @@ class Issue(Base):
     )
     solutions = relationship(
         "Solution",
+        back_populates="issue",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    applications = relationship(
+        "Application",
+        back_populates="issue",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    evidence = relationship(
+        "Evidence",
+        back_populates="issue",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    sponsorships = relationship(
+        "Sponsorship",
         back_populates="issue",
         cascade="all, delete-orphan",
         lazy="selectin",

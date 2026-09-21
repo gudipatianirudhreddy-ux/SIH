@@ -1,5 +1,29 @@
-from app.models.enums import IssuePriority, IssueStatus, SolutionStatus
+from app.models.enums import (
+    ApplicationStatus,
+    EvidenceType,
+    IssuePriority,
+    IssueStatus,
+    SolutionStatus,
+    SponsorshipStatus,
+)
+from app.schemas.application import (
+    ApplicationBase,
+    ApplicationCreate,
+    ApplicationResponse,
+    ApplicationUpdate,
+)
+from app.schemas.dashboard import (
+    CitizenDashboardResponse,
+    IndustryDashboardResponse,
+    StudentDashboardResponse,
+)
+from app.schemas.evidence import (
+    EvidenceBase,
+    EvidenceCreate,
+    EvidenceResponse,
+)
 from app.schemas.issue import (
+    AssignStudentRequest,
     IssueBase,
     IssueCreate,
     IssueListResponse,
@@ -23,6 +47,12 @@ from app.schemas.solution import (
     SolutionReviewResponse,
     SolutionUpdate,
 )
+from app.schemas.sponsorship import (
+    SponsorshipBase,
+    SponsorshipCreate,
+    SponsorshipResponse,
+    SponsorshipUpdate,
+)
 
 __all__ = [
     "UserRole",
@@ -33,6 +63,9 @@ __all__ = [
     "IssueStatus",
     "SolutionStatus",
     "IssuePriority",
+    "ApplicationStatus",
+    "EvidenceType",
+    "SponsorshipStatus",
     "IssueBase",
     "IssueCreate",
     "IssueUpdate",
@@ -40,10 +73,25 @@ __all__ = [
     "IssueListResponse",
     "IssueMediaCreate",
     "IssueMediaResponse",
+    "AssignStudentRequest",
     "SolutionBase",
     "SolutionCreate",
     "SolutionUpdate",
     "SolutionResponse",
     "SolutionReviewCreate",
     "SolutionReviewResponse",
+    "ApplicationBase",
+    "ApplicationCreate",
+    "ApplicationUpdate",
+    "ApplicationResponse",
+    "EvidenceBase",
+    "EvidenceCreate",
+    "EvidenceResponse",
+    "SponsorshipBase",
+    "SponsorshipCreate",
+    "SponsorshipUpdate",
+    "SponsorshipResponse",
+    "CitizenDashboardResponse",
+    "StudentDashboardResponse",
+    "IndustryDashboardResponse",
 ]

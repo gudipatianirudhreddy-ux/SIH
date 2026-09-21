@@ -1,7 +1,15 @@
 from fastapi import Depends, FastAPI
 
 from app.auth import get_current_user
-from app.routers import issue_router, profile_router, solution_router
+from app.routers import (
+    application_router,
+    dashboard_router,
+    evidence_router,
+    issue_router,
+    profile_router,
+    solution_router,
+    sponsorship_router,
+)
 
 tags_metadata = [
     {
@@ -13,8 +21,24 @@ tags_metadata = [
         "description": "Civic/societal problem reporting, GPS tagging, and AI categorization.",
     },
     {
+        "name": "applications",
+        "description": "Student application submission, review, and issue assignment workflow.",
+    },
+    {
+        "name": "evidence",
+        "description": "Student progress milestones, evidence media uploads, and tracking.",
+    },
+    {
         "name": "solutions",
         "description": "Student solution/prototype submissions and industry evaluations.",
+    },
+    {
+        "name": "sponsorships",
+        "description": "Industry sponsorship, grants, and mentorship pledges.",
+    },
+    {
+        "name": "dashboard",
+        "description": "Aggregated analytics and activity overviews for Citizens, Students, and Industry.",
     },
 ]
 
@@ -24,13 +48,17 @@ app = FastAPI(
         "A university-industry collaborative problem-solving platform connecting "
         "citizens, students, and industry partners."
     ),
-    version="0.2.0",
+    version="0.3.0",
     openapi_tags=tags_metadata,
 )
 
 app.include_router(profile_router)
 app.include_router(issue_router)
+app.include_router(application_router)
+app.include_router(evidence_router)
 app.include_router(solution_router)
+app.include_router(sponsorship_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/", summary="Root health check")

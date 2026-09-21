@@ -41,11 +41,28 @@ def create_solution(
 
 
 @router.get(
+    "/issues/me/solutions",
+    response_model=List[SolutionResponse],
+    summary="Get solutions submitted by current student",
+    description="Retrieves all solutions submitted by the authenticated student.",
+)
+def get_my_solutions(
+    current_profile: Profile = Depends(require_role("STUDENT")),
+    db: Session = Depends(get_db),
+):
+    return solution_service.list_solutions_for_student(
+        db=db,
+        student_id=current_profile.id,
+    )
+
+
+@router.get(
     "/issues/{issue_id}/solutions",
     response_model=List[SolutionResponse],
     summary="List solutions for an issue",
     description="Retrieves all student-submitted solutions and proposals for a specific issue.",
 )
+
 def list_issue_solutions(
     issue_id: uuid.UUID,
     db: Session = Depends(get_db),

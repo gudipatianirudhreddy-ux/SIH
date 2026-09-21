@@ -25,3 +25,26 @@ class IssuePriority(str, Enum):
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
     CRITICAL = "CRITICAL"
+
+
+class ApplicationStatus(str, Enum):
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    WITHDRAWN = "WITHDRAWN"
+
+
+class EvidenceType(str, Enum):
+    PROGRESS = "PROGRESS"
+    BEFORE = "BEFORE"
+    AFTER = "AFTER"
+    DOCUMENT = "DOCUMENT"
+    OTHER = "OTHER"
+
+
+class SponsorshipStatus(str, Enum):
+    PLEDGED = "PLEDGED"
+    APPROVED = "APPROVED"
+    DECLINED = "DECLINED"
+    COMPLETED = "COMPLETED"
+

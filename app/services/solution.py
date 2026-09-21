@@ -23,6 +23,23 @@ def create_solution(
             detail="Issue not found",
         )
 
+    # Assignment verification:
+    # If the issue already has an assigned student, only that student can submit
+    if issue.assigned_student_id is not None:
+        if issue.assigned_student_id != student_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the assigned student can submit a solution for this issue",
+            )
+    elif issue.status in (IssueStatus.IN_PROGRESS.value, IssueStatus.VERIFIED.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student is not assigned to this issue",
+        )
+    else:
+        # Legacy / unassigned issue backward compatibility: auto-assign student
+        issue.assigned_student_id = student_id
+
     db_solution = Solution(
         issue_id=issue_id,
         student_id=student_id,
@@ -34,14 +51,8 @@ def create_solution(
     )
     db.add(db_solution)
 
-    # Automatically transition issue to SOLUTION_SUBMITTED if active
-    if issue.status in (
-        IssueStatus.REPORTED.value,
-        IssueStatus.AI_CLASSIFIED.value,
-        IssueStatus.VERIFIED.value,
-        IssueStatus.IN_PROGRESS.value,
-    ):
-        issue.status = IssueStatus.SOLUTION_SUBMITTED.value
+    # Automatically transition issue to SOLUTION_SUBMITTED
+    issue.status = IssueStatus.SOLUTION_SUBMITTED.value
 
     db.commit()
     db.refresh(db_solution)
@@ -100,6 +111,11 @@ def create_solution_review(
     if solution.status == SolutionStatus.SUBMITTED.value:
         solution.status = SolutionStatus.UNDER_REVIEW.value
 
+    # Transition issue status to EVALUATED if currently in SOLUTION_SUBMITTED
+    issue = db.query(Issue).filter(Issue.id == solution.issue_id).first()
+    if issue and issue.status == IssueStatus.SOLUTION_SUBMITTED.value:
+        issue.status = IssueStatus.EVALUATED.value
+
     db.commit()
     db.refresh(db_review)
     return db_review
@@ -112,3 +128,13 @@ def list_reviews_for_solution(db: Session, solution_id: uuid.UUID) -> List[Solut
         .order_by(SolutionReview.created_at.desc())
         .all()
     )
+
+
+def list_solutions_for_student(db: Session, student_id: uuid.UUID) -> List[Solution]:
+    return (
+        db.query(Solution)
+        .filter(Solution.student_id == student_id)
+        .order_by(Solution.created_at.desc())
+        .all()
+    )
+

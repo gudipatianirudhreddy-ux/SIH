@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth import require_authenticated_user
+from app.auth import require_authenticated_user, require_role
 from app.database import get_db
 from app.models.profile import Profile
 from app.schemas.issue import (
@@ -76,6 +76,58 @@ def list_issues(
 
 
 @router.get(
+    "/me/reported",
+    response_model=IssueListResponse,
+    summary="Get issues reported by the current user",
+    description="Retrieves a paginated list of societal issues reported by the authenticated user.",
+)
+def get_my_reported_issues(
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    current_profile: Profile = Depends(require_authenticated_user),
+    db: Session = Depends(get_db),
+):
+    items, total = issue_service.list_reported_issues(
+        db=db,
+        reporter_id=current_profile.id,
+        page=page,
+        page_size=page_size,
+    )
+    return IssueListResponse(
+        total=total,
+        page=page,
+        page_size=page_size,
+        items=items,
+    )
+
+
+@router.get(
+    "/me/assigned",
+    response_model=IssueListResponse,
+    summary="Get issues assigned to current student",
+    description="Retrieves a paginated list of societal issues assigned to the authenticated student.",
+)
+def get_my_assigned_issues(
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    current_profile: Profile = Depends(require_role("STUDENT")),
+    db: Session = Depends(get_db),
+):
+    items, total = issue_service.list_assigned_issues(
+        db=db,
+        student_id=current_profile.id,
+        page=page,
+        page_size=page_size,
+    )
+    return IssueListResponse(
+        total=total,
+        page=page,
+        page_size=page_size,
+        items=items,
+    )
+
+
+@router.get(
     "/{issue_id}",
     response_model=IssueResponse,
     summary="Get detailed issue by ID",
@@ -122,7 +174,8 @@ def update_issue(
             detail="You are not authorized to update this issue",
         )
 
-    return issue_service.update_issue(db, issue, issue_in)
+    return issue_service.update_issue(db, issue, issue_in, profile=current_profile)
+
 
 
 @router.delete(

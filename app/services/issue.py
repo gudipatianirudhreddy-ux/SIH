@@ -6,8 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import IssueStatus
 from app.models.issue import Issue, IssueMedia
+from app.models.profile import Profile
 from app.schemas.issue import IssueCreate, IssueUpdate
 from app.services.ml_classifier import IssueClassifier, get_issue_classifier
+from app.services.status_transition import validate_issue_status_transition
+
 
 
 def create_issue(
@@ -103,15 +106,22 @@ def update_issue(
     db: Session,
     issue: Issue,
     issue_update: IssueUpdate,
+    profile: Optional[Profile] = None,
 ) -> Issue:
+    if issue_update.status is not None:
+        validate_issue_status_transition(
+            issue=issue,
+            new_status=issue_update.status.value,
+            profile=profile,
+        )
+        issue.status = issue_update.status.value
+
     if issue_update.title is not None:
         issue.title = issue_update.title
     if issue_update.description is not None:
         issue.description = issue_update.description
     if issue_update.category is not None:
         issue.category = issue_update.category
-    if issue_update.status is not None:
-        issue.status = issue_update.status.value
     if issue_update.priority is not None:
         issue.priority = issue_update.priority.value
     if issue_update.latitude is not None:
@@ -126,9 +136,44 @@ def update_issue(
     return issue
 
 
+def list_reported_issues(
+    db: Session,
+    reporter_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Issue], int]:
+    query = db.query(Issue).filter(Issue.reporter_id == reporter_id)
+    total = query.count()
+    items = (
+        query.order_by(Issue.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+
+
+def list_assigned_issues(
+    db: Session,
+    student_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Issue], int]:
+    query = db.query(Issue).filter(Issue.assigned_student_id == student_id)
+    total = query.count()
+    items = (
+        query.order_by(Issue.updated_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+
+
 def delete_issue(db: Session, issue: Issue) -> None:
     db.delete(issue)
     db.commit()
+
 
 
 def add_media_to_issue(

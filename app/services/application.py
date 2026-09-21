@@ -1,0 +1,250 @@
+from typing import List, Optional
+import uuid
+
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.models.application import Application
+from app.models.enums import ApplicationStatus, IssueStatus
+from app.models.issue import Issue
+from app.models.profile import Profile
+from app.schemas.application import ApplicationCreate
+
+
+def create_application(
+    db: Session,
+    issue_id: uuid.UUID,
+    student_id: uuid.UUID,
+    application_in: ApplicationCreate,
+) -> Application:
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found",
+        )
+
+    # Check that issue is in an application-eligible state (must be VERIFIED)
+    if issue.status != IssueStatus.VERIFIED.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Applications are only open for issues with status 'VERIFIED' (current status: '{issue.status}')",
+        )
+
+    # Check if student already applied
+    existing = (
+        db.query(Application)
+        .filter(
+            Application.issue_id == issue_id,
+            Application.student_id == student_id,
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Student has already submitted an application for this issue",
+        )
+
+    db_application = Application(
+        issue_id=issue_id,
+        student_id=student_id,
+        proposal=application_in.proposal,
+        status=ApplicationStatus.PENDING.value,
+    )
+    db.add(db_application)
+    db.commit()
+    db.refresh(db_application)
+    return db_application
+
+
+def get_application_by_id(db: Session, application_id: uuid.UUID) -> Optional[Application]:
+    return db.query(Application).filter(Application.id == application_id).first()
+
+
+def list_applications_for_issue(
+    db: Session,
+    issue_id: uuid.UUID,
+    current_profile: Profile,
+) -> List[Application]:
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found",
+        )
+
+    user_role = (current_profile.role or "").lower()
+    is_reporter = issue.reporter_id == current_profile.id
+    is_admin = user_role == "admin"
+    is_industry = user_role in ("industry", "industrialist")
+
+    # Authorization: Issue reporter, Admin, Industry
+    if not (is_reporter or is_admin or is_industry):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to view applications for this issue",
+        )
+
+    return (
+        db.query(Application)
+        .filter(Application.issue_id == issue_id)
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+
+
+def list_student_applications(
+    db: Session,
+    student_id: uuid.UUID,
+) -> List[Application]:
+    return (
+        db.query(Application)
+        .filter(Application.student_id == student_id)
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+
+
+def update_application_status(
+    db: Session,
+    application_id: uuid.UUID,
+    new_status: ApplicationStatus,
+    current_profile: Profile,
+) -> Application:
+    application = get_application_by_id(db, application_id)
+    if not application:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found",
+        )
+
+    issue = db.query(Issue).filter(Issue.id == application.issue_id).first()
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Associated issue not found",
+        )
+
+    user_role = (current_profile.role or "").lower()
+    is_student_owner = application.student_id == current_profile.id
+    is_reporter = issue.reporter_id == current_profile.id
+    is_admin = user_role == "admin"
+
+    # Rule 1: A student should NOT be able to accept their own application
+    if new_status == ApplicationStatus.ACCEPTED:
+        if is_student_owner and not is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Students cannot accept their own application",
+            )
+        if not (is_reporter or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the issue reporter or an admin can accept an application",
+            )
+
+    # Rule 2: A student may withdraw their own pending application
+    elif new_status == ApplicationStatus.WITHDRAWN:
+        if not (is_student_owner or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the student applicant can withdraw their application",
+            )
+
+    # Rule 3: Rejecting an application
+    elif new_status == ApplicationStatus.REJECTED:
+        if not (is_reporter or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the issue reporter or an admin can reject an application",
+            )
+
+    application.status = new_status.value
+
+    # When an application is accepted:
+    # 1. Automatically assign that student to the issue.
+    # 2. Reject other pending applications for the same issue.
+    # 3. Update issue status to IN_PROGRESS.
+    if new_status == ApplicationStatus.ACCEPTED:
+        issue.assigned_student_id = application.student_id
+        issue.status = IssueStatus.IN_PROGRESS.value
+
+        other_pending = (
+            db.query(Application)
+            .filter(
+                Application.issue_id == issue.id,
+                Application.id != application.id,
+                Application.status == ApplicationStatus.PENDING.value,
+            )
+            .all()
+        )
+        for other in other_pending:
+            other.status = ApplicationStatus.REJECTED.value
+
+    db.commit()
+    db.refresh(application)
+    db.refresh(issue)
+    return application
+
+
+def assign_student_to_issue(
+    db: Session,
+    issue_id: uuid.UUID,
+    student_id: uuid.UUID,
+    current_profile: Profile,
+) -> Issue:
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issue not found",
+        )
+
+    user_role = (current_profile.role or "").lower()
+    is_reporter = issue.reporter_id == current_profile.id
+    is_admin = user_role == "admin"
+    if not (is_reporter or is_admin):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the issue reporter or an admin can assign a student to this issue",
+        )
+
+    # Verify student has an application for the issue
+    app_record = (
+        db.query(Application)
+        .filter(
+            Application.issue_id == issue_id,
+            Application.student_id == student_id,
+        )
+        .first()
+    )
+    if not app_record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Student has not applied for this issue",
+        )
+
+    # Accept the student's application if pending
+    app_record.status = ApplicationStatus.ACCEPTED.value
+
+    # Reject other pending applications
+    other_pending = (
+        db.query(Application)
+        .filter(
+            Application.issue_id == issue.id,
+            Application.id != app_record.id,
+            Application.status == ApplicationStatus.PENDING.value,
+        )
+        .all()
+    )
+    for other in other_pending:
+        other.status = ApplicationStatus.REJECTED.value
+
+    # Assign student and update status to IN_PROGRESS
+    issue.assigned_student_id = student_id
+    issue.status = IssueStatus.IN_PROGRESS.value
+
+    db.commit()
+    db.refresh(issue)
+    return issue

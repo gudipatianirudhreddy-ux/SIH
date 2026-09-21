@@ -65,6 +65,7 @@ class IssueUpdate(BaseModel):
 class IssueResponse(IssueBase):
     id: uuid.UUID
     reporter_id: uuid.UUID
+    assigned_student_id: Optional[uuid.UUID] = None
     category_confidence: Optional[float] = None
     status: str
     priority: Optional[str] = None
@@ -80,3 +81,8 @@ class IssueListResponse(BaseModel):
     page: int
     page_size: int
     items: List[IssueResponse]
+
+
+class AssignStudentRequest(BaseModel):
+    student_id: uuid.UUID = Field(..., description="UUID of the student to assign")
+
