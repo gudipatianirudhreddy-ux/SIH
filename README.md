@@ -1,222 +1,621 @@
-# SIH 2026: University-Industry Problem-Solving Platform (Backend)
+# SIH 2026 — TRANSITION
 
-An open-source, scalable FastAPI platform enabling citizens to report real-world societal challenges, students to design and submit engineering prototypes, and industry partners to mentor, evaluate, and fund impactful solutions.
+### University–Industry Problem-Solving Platform
+
+TRANSITION is a crowdsourced societal problem-solving platform that connects **Citizens, Students, and Industry** to identify real-world community issues, develop solutions, evaluate them, and support their implementation.
+
+The backend is built with **FastAPI, PostgreSQL/Supabase, SQLAlchemy, Supabase Auth, Alembic, and Docker**, with a separate ML service for image-based issue classification.
 
 ---
 
-## 🚀 Workflow Overview
+## 🚀 Live API
+
+The FastAPI backend is deployed on Render.
+
+- **API Base URL:** https://sih-a24k.onrender.com
+- **Interactive Swagger Docs:** https://sih-a24k.onrender.com/docs
+- **OpenAPI JSON:** https://sih-a24k.onrender.com/openapi.json
+
+Use the Swagger UI to explore and test the deployed API endpoints.
+
+---
+
+## 🔄 Complete Workflow
 
 ```
-Citizen/User
-    │ reports societal issue (Text + Image/Video + GPS location)
-    ▼
-AI/ML Issue Classifier
-    │ automatically categorizes the issue & calculates confidence
-    ▼
-Interactive Map & Discovery
-    │ students discover real-world issues by category and location
-    ▼
-Student Innovation Hub
-    │ student submits solution proposal + PDF documentation + demo link
-    ▼
-Industry Review & Mentorship
-    │ industry partners review, score, provide feedback, and shortlist
-    ▼
-Problem Resolved & Deployed
+Citizen
+  │
+  │ Report issue + location + media
+  ▼
+Issue Created
+  │
+  ▼
+AI / ML Classification
+  │
+  │ category + confidence + priority
+  ▼
+Issue Verification
+  │
+  ▼
+Students Discover Issue
+  │
+  ▼
+Student Application
+  │
+  ▼
+Application Accepted
+  │
+  ▼
+Student Assigned
+  │
+  ▼
+Progress / Evidence
+  │
+  ▼
+Solution Submitted
+  │
+  ▼
+Industry Review
+  │
+  ▼
+Industry Sponsorship / Support
+  │
+  ▼
+Evaluation
+  │
+  ▼
+Issue Resolved
 ```
+
+Notifications are intentionally outside the current prototype scope.
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Framework**: FastAPI (Python 3.13)
-- **Database**: PostgreSQL (Supabase managed)
-- **ORM**: SQLAlchemy 2.0
-- **Migrations**: Alembic
-- **Authentication**: Supabase Auth (Bearer JWT verification)
-- **Validation**: Pydantic v2
-- **Testing**: Pytest & HTTPX TestClient (with isolated in-memory SQLite fixture)
+### Backend
+- **Framework:** FastAPI
+- **Language:** Python 3.13
+- **ORM:** SQLAlchemy 2.0
+- **Database:** PostgreSQL
+- **Database Hosting:** Supabase
+- **Authentication:** Supabase Auth / Bearer JWT
+- **Validation:** Pydantic v2
+- **Migrations:** Alembic
+- **Testing:** Pytest + HTTPX TestClient
+- **Containerization:** Docker / Docker Compose
+- **Deployment:** Render
+
+### AI / ML
+- Separate ML classification service
+- Image-based societal issue classification
+- Returns category, confidence, and priority information to the backend
+
+The ML service is maintained separately from this repository.
 
 ---
 
-## 🏛️ Architecture & Project Structure
+## 🏛️ Architecture
 
-The project strictly follows a layered architecture: `Routers -> Services -> Models`:
+The backend follows a layered architecture:
+
+```
+Flutter / Frontend
+       │
+       ▼
+    FastAPI
+       │
+       ├── Routers
+       │
+       ├── Services
+       │
+       ├── SQLAlchemy Models
+       │
+       ▼
+   PostgreSQL
+    (Supabase)
+
+       │
+       └──────────────► ML Classification Service
+```
+
+Project structure:
 
 ```
 SIH/
 ├── alembic/
 │   ├── versions/
-│   │   ├── ca4f00f757e1_create_profiles_table.py
-│   │   ├── d2fd2379493d_add_phone_number_to_profiles.py
-│   │   ├── ba3667551077_add_avatar_url_location_and_updated_at_.py
-│   │   └── d800b2d30db3_add_issues_media_solutions_and_reviews.py  <-- SIH Domain Tables
 │   └── env.py
 ├── app/
-│   ├── auth.py              # Supabase auth, user extraction & role RBAC dependencies
-│   ├── database.py          # SQLAlchemy engine, session maker, get_db dependency
-│   ├── main.py              # FastAPI application, OpenAPI metadata, router registrations
-│   ├── models/              # SQLAlchemy database domain models
-│   │   ├── enums.py         # IssueStatus, SolutionStatus, IssuePriority
-│   │   ├── issue.py         # Issue, IssueMedia
-│   │   ├── profile.py       # Profile (Citizen, Student, Industrialist/Industry, Admin)
-│   │   └── solution.py      # Solution, SolutionReview
-│   ├── schemas/             # Pydantic validation schemas
-│   │   ├── issue.py         # IssueCreate, IssueUpdate, IssueResponse, IssueListResponse, IssueMedia*
-│   │   ├── profile.py       # ProfileCreate, ProfileUpdate, ProfileResponse, UserRole
-│   │   └── solution.py      # SolutionCreate, SolutionUpdate, SolutionResponse, SolutionReview*
-│   ├── services/            # Pure business logic layer
-│   │   ├── issue.py         # Issue CRUD, bounding-box geographic query, media attachment
-│   │   ├── media_storage.py # Media storage abstraction (Supabase Storage + Local fallback)
-│   │   ├── ml_classifier.py # ML IssueClassifier interface (Clean pluggable service)
-│   │   ├── profile.py       # User profile management
-│   │   └── solution.py      # Solution lifecycle, status transitions, industry reviews
-│   └── routers/             # API route controllers
-│       ├── issue.py         # /issues endpoints
-│       ├── profile.py       # /profiles endpoints
-│       └── solution.py      # /solutions and /issues/{id}/solutions endpoints
+│   ├── auth.py
+│   ├── database.py
+│   ├── main.py
+│   ├── models/
+│   ├── schemas/
+│   ├── services/
+│   └── routers/
+│       ├── profile.py
+│       ├── issue.py
+│       ├── application.py
+│       ├── evidence.py
+│       ├── solution.py
+│       ├── sponsorship.py
+│       └── dashboard.py
 ├── tests/
-│   ├── conftest.py          # In-memory SQLite fixture and mock authentication
-│   ├── test_profile.py      # Profile management tests
-│   └── test_sih_workflow.py # SIH end-to-end integration & authorization tests
-├── .env                     # Environment credentials
-├── pyproject.toml           # Project dependencies
+│   ├── conftest.py
+│   ├── test_profile.py
+│   ├── test_sih_workflow.py
+│   └── test_transition_workflow.py
+├── Dockerfile
+├── docker-compose.yml
+├── pyproject.toml
 └── README.md
 ```
 
 ---
 
-## 🔑 Role-Based Access Control (RBAC)
+## 👥 Role-Based Access Control
 
-The platform supports four user roles stored in the `profiles` table:
+The platform supports four roles:
 
-1. **`citizen`**: Can report societal issues, attach media, and track resolution status.
-2. **`student`**: Can discover issues and submit solution proposals with documentation/prototypes.
-3. **`industrialist` / `industry`**: Can review solutions, provide technical feedback, and award ratings (1–5).
-4. **`admin`**: Full administrative access across issues, solutions, and reviews.
+### Citizen
+- Report societal issues
+- Attach issue media
+- Provide location information
+- Verify/manage reported issues
+- Review student applications
+- Track issue progress
+- Participate in resolution workflow
 
-Role-checking dependencies in [`app/auth.py`](file:///C:/Users/gkira/Desktop/Python%20building/SIH/app/auth.py):
-- `require_authenticated_user`
-- `require_role("STUDENT")`
-- `require_role("INDUSTRY")` (supports both `"industrialist"` and `"industry"`)
-- `require_role("ADMIN")`
+### Student
+- Discover verified issues
+- Apply to work on issues
+- View assigned issues
+- Upload progress/evidence
+- Submit solution proposals
+- Manage their own applications
 
----
+### Industry / Industrialist
+- Review submitted solutions
+- Provide ratings and feedback
+- View project progress
+- Sponsor/support issues
 
-## 📡 API Endpoints
+### Admin
+- Administrative access across the platform
 
-### Health & Auth
-- `GET /` - Root health check
-- `GET /me` - Current authenticated user information
-
-### User Profiles (`/profiles`)
-- `GET /profiles/me` - Get current user profile
-- `POST /profiles` & `POST /profiles/me` - Create profile (`citizen`, `student`, `industrialist`, `admin`)
-- `PATCH /profiles/me` & `PUT /profiles/me` - Update profile details
-
-### Societal Issues (`/issues`)
-- `POST /issues` - Report a new issue (stores description, GPS coords, triggers AI classification on media)
-- `GET /issues` - List issues (paginated, sort by newest; filter by `category`, `status`, or bounding box: `min_lat`, `max_lat`, `min_lon`, `max_lon`)
-- `GET /issues/{issue_id}` - Get full issue details with media and status
-- `PATCH /issues/{issue_id}` - Update issue (authorized for reporter or admin)
-- `DELETE /issues/{issue_id}` - Delete issue (authorized for reporter or admin)
-- `POST /issues/{issue_id}/media` - Attach image/video URL to an issue and trigger classification
-
-### Solutions (`/issues/{issue_id}/solutions` & `/solutions`)
-- `POST /issues/{issue_id}/solutions` - Submit solution prototype (Students only; transitions issue to `SOLUTION_SUBMITTED`)
-- `GET /issues/{issue_id}/solutions` - List all solutions submitted for an issue
-- `GET /solutions/{solution_id}` - Get specific solution details and industry reviews
-- `PATCH /solutions/{solution_id}` - Update solution (content edited by student owner; status updated by industry/admin)
-
-### Industry Reviews (`/solutions/{solution_id}/reviews`)
-- `POST /solutions/{solution_id}/reviews` - Submit review with rating (1-5) and feedback (Industry / Admin only)
-- `GET /solutions/{solution_id}/reviews` - List all industry reviews for a solution
+Authentication and role authorization are handled through the existing Supabase Auth integration and RBAC dependencies.
 
 ---
 
-## 🤖 ML Classifier Integration
+# 📡 API Endpoints
 
-The ML classification service is located at:
-[`app/services/ml_classifier.py`](file:///C:/Users/gkira/Desktop/Python%20building/SIH/app/services/ml_classifier.py)
+## Health & Authentication
 
-### Architecture
-```python
-class IssueClassifier:
-    def classify(self, image_path_or_url: str) -> dict:
-        # Returns: {"category": str, "confidence": float}
-        ...
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/` | Root health check |
+| GET | `/me` | Get authenticated user information |
+
+---
+
+## 👤 Profiles
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/profiles/me` | Get current profile |
+| POST | `/profiles` | Create profile |
+| POST | `/profiles/me` | Create current user's profile |
+| PATCH | `/profiles/me` | Update current profile |
+| PUT | `/profiles/me` | Replace/update current profile |
+
+Supported roles include `citizen`, `student`, `industrialist`, and `admin`.
+
+---
+
+## 🏙️ Issues
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/issues` | Create a societal issue |
+| GET | `/issues` | List/filter issues |
+| GET | `/issues/{issue_id}` | Get issue details |
+| PATCH | `/issues/{issue_id}` | Update issue |
+| DELETE | `/issues/{issue_id}` | Delete issue |
+| GET | `/issues/me/reported` | Get issues reported by current user |
+| GET | `/issues/me/assigned` | Get issues assigned to current student |
+| POST | `/issues/{issue_id}/media` | Attach issue media URL |
+
+Issue listing supports:
+
+- Pagination
+- Category filtering
+- Status filtering
+- Geographic bounding-box filtering using latitude/longitude
+
+---
+
+## 🎓 Student Applications & Assignment
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/issues/{issue_id}/applications` | Student applies to solve an issue |
+| GET | `/issues/{issue_id}/applications` | List applications for an issue |
+| GET | `/applications/me` | Get current student's applications |
+| PATCH | `/applications/{application_id}` | Update application status |
+| POST | `/issues/{issue_id}/assign` | Assign an applicant student to an issue |
+
+Application workflow:
+
 ```
-- A development mock classifier is currently configured with heuristic categorization.
-- **To plug in the real ML model**: Replace the internal logic of `IssueClassifier.classify` (or subclass `IssueClassifier`) with your PyTorch, ONNX, or TensorFlow pipeline.
-- No routers or services need to be altered when replacing the classifier.
+PENDING
+   ├── ACCEPTED
+   ├── REJECTED
+   └── WITHDRAWN
+```
+
+Accepting an application can assign the student to the issue and move the issue into the implementation workflow.
 
 ---
 
-## 📦 Supabase Storage Integration
+## 📸 Progress & Evidence
 
-The media storage abstraction is located at:
-[`app/services/media_storage.py`](file:///C:/Users/gkira/Desktop/Python%20building/SIH/app/services/media_storage.py)
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/issues/{issue_id}/evidence` | Add progress/evidence |
+| GET | `/issues/{issue_id}/evidence` | List issue evidence |
+| DELETE | `/evidence/{evidence_id}` | Delete evidence |
 
-### How It Works
-- Implements `BaseStorageService` with `SupabaseStorageService` and `LocalStorageService`.
-- Uses `supabase.storage.from_("issue-media").upload(...)` and `.get_public_url(...)`.
-- If Supabase Storage is not set up, it automatically falls back gracefully.
+Evidence can represent:
+
+- Progress milestones
+- Before/after media
+- Documentation
+- Other supporting evidence
+
+Only appropriately authorized users can create, view, or delete evidence.
 
 ---
 
-## ⚙️ Environment Variables
+## 💡 Solutions
 
-Create a `.env` file in the root directory:
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/issues/{issue_id}/solutions` | Submit a solution |
+| GET | `/issues/{issue_id}/solutions` | List solutions for an issue |
+| GET | `/solutions/{solution_id}` | Get solution details |
+| PATCH | `/solutions/{solution_id}` | Update solution |
+
+Solutions support prototype/documentation information and integrate with the industry review workflow.
+
+---
+
+## 🏢 Industry Reviews
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/solutions/{solution_id}/reviews` | Submit industry review |
+| GET | `/solutions/{solution_id}/reviews` | List reviews |
+
+Industry reviews support:
+
+- Rating
+- Feedback
+- Solution evaluation
+
+---
+
+## 💰 Industry Sponsorship
+
+The prototype includes a lightweight sponsorship/pledge system. It does **not** process real payments.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/issues/{issue_id}/sponsorships` | Create sponsorship pledge |
+| GET | `/issues/{issue_id}/sponsorships` | List sponsorships |
+| PATCH | `/sponsorships/{sponsorship_id}` | Update sponsorship |
+
+Sponsorships can represent financial support, grants, materials, or other project support.
+
+---
+
+## 📊 Dashboards
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/dashboard/citizen` | Citizen issue overview |
+| GET | `/dashboard/student` | Student applications, assignments, and solutions |
+| GET | `/dashboard/industry` | Industry projects, sponsorships, and reviews |
+
+These endpoints provide lightweight aggregated data for the Flutter dashboards.
+
+---
+
+# 🔄 Issue Lifecycle
+
+The backend uses controlled issue states:
+
+```
+REPORTED
+    ↓
+AI_CLASSIFIED
+    ↓
+VERIFIED
+    ↓
+IN_PROGRESS
+    ↓
+SOLUTION_SUBMITTED
+    ↓
+EVALUATED
+    ↓
+RESOLVED
+```
+
+State changes are controlled by the appropriate role and workflow rather than allowing arbitrary users to jump directly between states.
+
+---
+
+# 🤖 ML Classification Integration
+
+The backend contains a pluggable ML classifier service:
+
+```
+app/services/ml_classifier.py
+```
+
+The intended flow is:
+
+```
+Issue Media
+     ↓
+FastAPI
+     ↓
+ML Classification Service
+     ↓
+Category
+Confidence
+Priority
+     ↓
+Issue metadata updated
+```
+
+The ML model/service is maintained separately and can be connected through the classifier service abstraction without changing the core issue API.
+
+---
+
+# 📦 Media Storage
+
+Media handling is abstracted through:
+
+```
+app/services/media_storage.py
+```
+
+The project supports Supabase Storage and a local storage implementation for development/testing.
+
+Issue media is currently represented through stored media URLs, allowing the Flutter client and storage layer to determine the actual upload mechanism.
+
+---
+
+# 🗄️ Database & Migrations
+
+The project uses PostgreSQL with SQLAlchemy and Alembic.
+
+Run migrations:
+
+```powershell
+alembic upgrade head
+```
+
+Preview migration SQL:
+
+```powershell
+alembic upgrade head --sql
+```
+
+Database entities include:
+
+- Profiles
+- Issues
+- Issue Media
+- Applications
+- Evidence
+- Solutions
+- Solution Reviews
+- Sponsorships
+
+---
+
+# ⚙️ Environment Variables
+
+Create a `.env` file in the project root.
+
+Example:
 
 ```env
 DATABASE_URL=postgresql://postgres:<PASSWORD>@db.<PROJECT_REF>.supabase.co:5432/postgres
 SUPABASE_URL=https://<PROJECT_REF>.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_<KEY>
+SIH_ML_SERVICE_URL=http://localhost:8001
 ```
+
+Never commit real credentials or secrets to GitHub.
 
 ---
 
-## 🏃 Running the Application
+# 🏃 Run Locally
 
-### 1. Install Dependencies
-Ensure Python 3.13+ is installed:
+## 1. Install dependencies
+
+Using uv:
+
 ```powershell
 uv sync
-# OR
+```
+
+Or with pip:
+
+```powershell
 pip install -r requirements.txt
 ```
 
-### 2. Run Database Migrations
-Apply all schema migrations to your PostgreSQL / Supabase database:
+## 2. Run migrations
+
 ```powershell
 alembic upgrade head
 ```
 
-To review generated SQL without executing against the database:
-```powershell
-alembic upgrade head --sql
-```
+## 3. Start FastAPI
 
-### 3. Start the FastAPI Development Server
 ```powershell
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open interactive Swagger UI at: [http://localhost:8000/docs](http://localhost:8000/docs)
+Open:
+
+**http://localhost:8000/docs**
 
 ---
 
-## 🧪 Running Tests
+# 🐳 Docker
 
-The test suite runs against an isolated, in-memory SQLite database and mocks Supabase auth:
+Build and start the application:
 
 ```powershell
-pytest
+docker compose up -d --build
 ```
 
-Run with verbose test output:
+Check running containers:
+
 ```powershell
-pytest -v
+docker compose ps
 ```
 
-All 24 unit and integration tests covering profiles, issue reporting, ML triggers, student solutions, industry evaluations, and coordinate validations will execute.
+View recent logs:
+
+```powershell
+docker compose logs --tail=100
+```
+
+Follow logs live:
+
+```powershell
+docker compose logs -f
+```
+
+After backend changes, use `--build` to ensure the Docker image contains the latest application code.
+
+---
+
+# 🧪 Testing
+
+The project uses Pytest with isolated test fixtures and mocked authentication.
+
+Run all tests:
+
+```powershell
+python -m pytest
+```
+
+Verbose output:
+
+```powershell
+python -m pytest -v
+```
+
+Run the main SIH workflow tests:
+
+```powershell
+python -m pytest tests/test_sih_workflow.py -v
+```
+
+Run the transition workflow tests:
+
+```powershell
+python -m pytest tests/test_transition_workflow.py -v
+```
+
+The test suite covers authentication, profiles, issue reporting, authorization, applications, assignment, evidence, solutions, industry reviews, sponsorships, dashboards, workflow transitions, and validation.
+
+---
+
+# 🌐 Deployment
+
+The current backend deployment runs on **Render**:
+
+**https://sih-a24k.onrender.com**
+
+Swagger documentation:
+
+**https://sih-a24k.onrender.com/docs**
+
+The production database is hosted through Supabase PostgreSQL.
+
+---
+
+# 🎯 Current Prototype Scope
+
+### Implemented
+
+- [x] Supabase authentication
+- [x] Role-based access control
+- [x] Citizen profiles
+- [x] Societal issue reporting
+- [x] GPS/location support
+- [x] Issue media references
+- [x] Issue filtering and geographic queries
+- [x] ML classifier integration layer
+- [x] Student applications
+- [x] Student assignment
+- [x] Progress/evidence tracking
+- [x] Student solution submission
+- [x] Industry reviews
+- [x] Industry sponsorship/pledges
+- [x] Role-specific dashboards
+- [x] Controlled issue lifecycle
+- [x] Automated tests
+- [x] Docker support
+- [x] Render deployment
+
+### Intentionally out of scope for the current prototype
+
+- [ ] Notifications
+- [ ] Real payment gateway
+- [ ] Production-grade file upload pipeline beyond the current media URL/storage architecture
+- [ ] Advanced analytics
+- [ ] Complex assignment history
+
+---
+
+# 🧭 Next Integration Layer
+
+The backend is designed to be consumed by the Flutter frontend.
+
+Expected client flow:
+
+```
+Flutter
+   │
+   ├── Authentication
+   │
+   ├── Citizen Dashboard
+   │       └── Report Issue
+   │
+   ├── Map / Issue Discovery
+   │
+   ├── Student Dashboard
+   │       ├── Applications
+   │       ├── Assigned Issues
+   │       ├── Evidence
+   │       └── Solutions
+   │
+   └── Industry Dashboard
+           ├── Reviews
+           └── Sponsorship
+```
+
+---
+
+## 📄 License
+
+This project is developed as a **Smart India Hackathon 2026 prototype**.
