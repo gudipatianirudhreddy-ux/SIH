@@ -20,6 +20,17 @@ def get_citizen_dashboard_data(db: Session, citizen_id: uuid.UUID) -> Dict[str, 
     in_progress_issues = base_query.filter(Issue.status == IssueStatus.IN_PROGRESS.value).count()
     resolved_issues = base_query.filter(Issue.status == IssueStatus.RESOLVED.value).count()
 
+    pending_statuses = [IssueStatus.REPORTED.value, IssueStatus.AI_CLASSIFIED.value, IssueStatus.VERIFIED.value]
+    pending_query = base_query.filter(Issue.status.in_(pending_statuses))
+    pending_problems = pending_query.count()
+
+    ongoing_statuses = [IssueStatus.IN_PROGRESS.value, IssueStatus.SOLUTION_SUBMITTED.value, IssueStatus.EVALUATED.value]
+    ongoing_query = base_query.filter(Issue.status.in_(ongoing_statuses))
+    ongoing_problems = ongoing_query.count()
+
+    pending_problem_list = pending_query.order_by(Issue.created_at.desc()).limit(5).all()
+    ongoing_problem_list = ongoing_query.order_by(Issue.updated_at.desc()).limit(5).all()
+
     recent_issues = (
         base_query.order_by(Issue.created_at.desc())
         .limit(5)
@@ -31,6 +42,10 @@ def get_citizen_dashboard_data(db: Session, citizen_id: uuid.UUID) -> Dict[str, 
         "verified_issues": verified_issues,
         "in_progress_issues": in_progress_issues,
         "resolved_issues": resolved_issues,
+        "pending_problems": pending_problems,
+        "ongoing_problems": ongoing_problems,
+        "pending_problem_list": pending_problem_list,
+        "ongoing_problem_list": ongoing_problem_list,
         "recent_reported_issues": recent_issues,
     }
 
