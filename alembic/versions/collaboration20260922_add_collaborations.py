@@ -15,7 +15,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("applications", sa.Column("status", sa.Text(), nullable=False, server_default="PENDING")) if False else None
     op.create_table(
         "collaborations",
         sa.Column("id", sa.UUID(), nullable=False),
