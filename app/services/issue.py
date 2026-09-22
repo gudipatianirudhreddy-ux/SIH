@@ -106,6 +106,20 @@ def list_issues(
     return items, total
 
 
+def list_citywide_issues(
+    db: Session, page: int = 1, page_size: int = 20,
+    category: Optional[str] = None, status: Optional[str] = None,
+) -> Tuple[List[Issue], int]:
+    """Return a paginated city-wide issue feed for industrialists."""
+    query = db.query(Issue)
+    if category:
+        query = query.filter(Issue.category.ilike(f"%{category.strip()}%"))
+    if status:
+        query = query.filter(func.lower(Issue.status) == status.strip().lower())
+    total = query.count()
+    items = (query.order_by(Issue.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all())
+    return items, total
+
 def list_nearby_issues(
     db: Session,
     latitude: float,
