@@ -1,5 +1,6 @@
 from sqlalchemy import Column, DateTime, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -25,4 +26,19 @@ class Profile(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    student_interest = relationship(
+        "StudentInterest",
+        back_populates="profile",
+        uselist=False,
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    industrialist_interest = relationship(
+        "IndustrialistInterest",
+        back_populates="profile",
+        uselist=False,
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )

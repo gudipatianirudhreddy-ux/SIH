@@ -7,7 +7,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 revision: str = "rewards20260922"
-down_revision: Union[str, Sequence[str], None] = "f58c93b12a41"
+down_revision: Union[str, Sequence[str], None] = "10142a28d56a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:

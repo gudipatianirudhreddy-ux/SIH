@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -49,6 +49,7 @@ class Issue(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    deletion_reason = Column(String, nullable=True)
 
     reporter = relationship("Profile", foreign_keys=[reporter_id])
     assigned_student = relationship("Profile", foreign_keys=[assigned_student_id], lazy="selectin")
@@ -82,6 +83,12 @@ class Issue(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    verifications = relationship(
+        "IssueVerification",
+        back_populates="issue",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
 
 class IssueMedia(Base):
@@ -103,3 +110,34 @@ class IssueMedia(Base):
     )
 
     issue = relationship("Issue", back_populates="media")
+
+
+class IssueVerification(Base):
+    __tablename__ = "issue_verifications"
+    __table_args__ = (
+        UniqueConstraint("issue_id", "citizen_id", name="uq_issue_verification_citizen_issue"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    issue_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("issues.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    citizen_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    response = Column(String(20), nullable=False)
+
+    issue = relationship("Issue", back_populates="verifications")
+    citizen = relationship("Profile", foreign_keys=[citizen_id], lazy="selectin")
+

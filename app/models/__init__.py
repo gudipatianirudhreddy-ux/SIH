@@ -8,7 +8,8 @@ from app.models.enums import (
     SponsorshipStatus,
 )
 from app.models.evidence import Evidence
-from app.models.issue import Issue, IssueMedia
+from app.models.interest import IndustrialistInterest, StudentInterest
+from app.models.issue import Issue, IssueMedia, IssueVerification
 from app.models.point_transaction import PointTransaction
 from app.models.profile import Profile
 from app.models.solution import Solution, SolutionReview
@@ -19,6 +20,9 @@ __all__ = [
     "PointTransaction",
     "Issue",
     "IssueMedia",
+    "IssueVerification",
+    "StudentInterest",
+    "IndustrialistInterest",
     "Solution",
     "SolutionReview",
     "Application",
