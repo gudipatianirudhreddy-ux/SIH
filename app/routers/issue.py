@@ -76,6 +76,25 @@ def list_issues(
 
 
 @router.get(
+    "/industrialist",
+    response_model=IssueListResponse,
+    summary="List city-wide societal issues for industrialists",
+    description="Returns a paginated city-wide issue feed for authenticated Industrialist users.",
+)
+def get_industrialist_issues(
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    category: Optional[str] = Query(default=None, description="Filter by problem category"),
+    status: Optional[str] = Query(default=None, description="Filter by issue status"),
+    current_profile: Profile = Depends(require_role("INDUSTRY")),
+    db: Session = Depends(get_db),
+):
+    items, total = issue_service.list_citywide_issues(
+        db=db, page=page, page_size=page_size, category=category, status=status,
+    )
+    return IssueListResponse(total=total, page=page, page_size=page_size, items=items)
+
+@router.get(
     "/nearby",
     response_model=IssueListResponse,
     summary="List nearby societal issues",
