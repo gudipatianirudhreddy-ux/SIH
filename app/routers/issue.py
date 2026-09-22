@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth import require_authenticated_user, require_role
+from app.auth import require_authenticated_user
 from app.database import get_db
 from app.models.profile import Profile
 from app.schemas.issue import (
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/issues", tags=["issues"])
     response_model=IssueResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Report a new societal issue",
-    description="Creates a new issue reported by the authenticated citizen/user. If media URLs are attached, automated ML classification is triggered.",
+    description="Creates a new societal issue reported by any authenticated stakeholder (Citizen, Student, or Industrialist). If media URLs are attached, automated ML classification is triggered.",
 )
 def create_issue(
     issue_in: IssueCreate,
