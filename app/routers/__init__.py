@@ -1,4 +1,5 @@
 from app.routers.application import router as application_router
+from app.routers.collaboration import router as collaboration_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.evidence import router as evidence_router
 from app.routers.issue import router as issue_router
@@ -13,6 +14,7 @@ __all__ = [
     "points_router",
     "solution_router",
     "application_router",
+    "collaboration_router",
     "evidence_router",
     "sponsorship_router",
     "dashboard_router",
