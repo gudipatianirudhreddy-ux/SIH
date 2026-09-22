@@ -9,12 +9,14 @@ from app.models.enums import (
 )
 from app.models.evidence import Evidence
 from app.models.issue import Issue, IssueMedia
+from app.models.point_transaction import PointTransaction
 from app.models.profile import Profile
 from app.models.solution import Solution, SolutionReview
 from app.models.sponsorship import Sponsorship
 
 __all__ = [
     "Profile",
+    "PointTransaction",
     "Issue",
     "IssueMedia",
     "Solution",

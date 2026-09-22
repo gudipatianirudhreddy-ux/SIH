@@ -61,6 +61,7 @@ class ProfileResponse(BaseModel):
     role: str
     avatar_url: Optional[str] = None
     location: Optional[str] = None
+    points: int
     created_at: datetime
     updated_at: datetime
 

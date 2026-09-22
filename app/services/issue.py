@@ -9,6 +9,7 @@ from app.models.issue import Issue, IssueMedia
 from app.models.profile import Profile
 from app.schemas.issue import IssueCreate, IssueUpdate
 from app.services.ml_classifier import IssueClassifier, get_issue_classifier
+from app.services.profile import add_points
 from app.services.status_transition import validate_issue_status_transition
 
 
@@ -58,6 +59,9 @@ def create_issue(
         db_issue.status = IssueStatus.AI_CLASSIFIED.value
 
     db.commit()
+    reporter = db.query(Profile).filter(Profile.id == reporter_id).first()
+    if reporter and (reporter.role or "").lower() == "citizen":
+        add_points(db, reporter_id, 10, "ISSUE_REPORTED", db_issue.id)
     db.refresh(db_issue)
     return db_issue
 
