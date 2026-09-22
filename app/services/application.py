@@ -153,6 +153,13 @@ def update_application_status(
                 detail="Only the student applicant can withdraw their application",
             )
 
+    # Selection must go through the Industrialist collaboration endpoint.
+    elif new_status == ApplicationStatus.SELECTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use the Industrialist proposal selection endpoint to select an application",
+        )
+
     # Rule 3: Rejecting an application
     elif new_status == ApplicationStatus.REJECTED:
         if not (is_reporter or is_admin):

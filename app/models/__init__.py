@@ -1,6 +1,8 @@
 from app.models.application import Application
+from app.models.collaboration import Collaboration
 from app.models.enums import (
     ApplicationStatus,
+    CollaborationStatus,
     EvidenceType,
     IssuePriority,
     IssueStatus,
@@ -22,12 +24,14 @@ __all__ = [
     "Solution",
     "SolutionReview",
     "Application",
+    "Collaboration",
     "Evidence",
     "Sponsorship",
     "IssueStatus",
     "SolutionStatus",
     "IssuePriority",
     "ApplicationStatus",
+    "CollaborationStatus",
     "EvidenceType",
     "SponsorshipStatus",
 ]

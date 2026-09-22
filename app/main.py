@@ -3,6 +3,7 @@ from fastapi import Depends, FastAPI
 from app.auth import get_current_user
 from app.routers import (
     application_router,
+    collaboration_router,
     dashboard_router,
     evidence_router,
     issue_router,
@@ -57,6 +58,7 @@ app.include_router(profile_router)
 app.include_router(points_router)
 app.include_router(issue_router)
 app.include_router(application_router)
+app.include_router(collaboration_router)
 app.include_router(evidence_router)
 app.include_router(solution_router)
 app.include_router(sponsorship_router)
