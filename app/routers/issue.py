@@ -76,6 +76,31 @@ def list_issues(
 
 
 @router.get(
+    "/nearby",
+    response_model=IssueListResponse,
+    summary="List nearby societal issues",
+    description="Returns issues within a radius of the supplied coordinates. Defaults to a 5 km radius.",
+)
+def get_nearby_issues(
+    latitude: float = Query(..., ge=-90.0, le=90.0, description="Current latitude"),
+    longitude: float = Query(..., ge=-180.0, le=180.0, description="Current longitude"),
+    radius_km: float = Query(default=5.0, gt=0.0, le=50.0, description="Search radius in kilometers"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    items, total = issue_service.list_nearby_issues(
+        db=db,
+        latitude=latitude,
+        longitude=longitude,
+        radius_km=radius_km,
+        page=page,
+        page_size=page_size,
+    )
+    return IssueListResponse(total=total, page=page, page_size=page_size, items=items)
+
+
+@router.get(
     "/me/reported",
     response_model=IssueListResponse,
     summary="Get issues reported by the current user",
