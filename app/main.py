@@ -6,6 +6,7 @@ from app.routers import (
     dashboard_router,
     evidence_router,
     issue_router,
+    points_router,
     profile_router,
     solution_router,
     sponsorship_router,
@@ -53,6 +54,7 @@ app = FastAPI(
 )
 
 app.include_router(profile_router)
+app.include_router(points_router)
 app.include_router(issue_router)
 app.include_router(application_router)
 app.include_router(evidence_router)
