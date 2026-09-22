@@ -9,6 +9,10 @@ class CitizenDashboardResponse(BaseModel):
     verified_issues: int
     in_progress_issues: int
     resolved_issues: int
+    pending_problems: int
+    ongoing_problems: int
+    pending_problem_list: List[IssueResponse] = []
+    ongoing_problem_list: List[IssueResponse] = []
     recent_reported_issues: List[IssueResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
