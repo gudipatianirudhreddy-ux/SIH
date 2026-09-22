@@ -32,6 +32,13 @@ class ApplicationStatus(str, Enum):
     ACCEPTED = "ACCEPTED"
     REJECTED = "REJECTED"
     WITHDRAWN = "WITHDRAWN"
+    SELECTED = "SELECTED"
+
+
+class CollaborationStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
 class EvidenceType(str, Enum):
