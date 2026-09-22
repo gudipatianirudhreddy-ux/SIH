@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth import require_authenticated_user
+from app.auth import require_authenticated_user, require_role
 from app.database import get_db
 from app.models.profile import Profile
 from app.schemas.issue import (

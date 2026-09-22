@@ -60,7 +60,7 @@ def create_issue(
 
     db.commit()
     reporter = db.query(Profile).filter(Profile.id == reporter_id).first()
-    if reporter and (reporter.role or "").lower() == "citizen":
+    if reporter and (reporter.role or "").lower() in ["citizen", "student", "industrialist"]:
         add_points(db, reporter_id, 10, "ISSUE_REPORTED", db_issue.id)
     db.refresh(db_issue)
     return db_issue
