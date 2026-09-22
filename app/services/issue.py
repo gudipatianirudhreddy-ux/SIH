@@ -59,7 +59,9 @@ def create_issue(
         db_issue.status = IssueStatus.AI_CLASSIFIED.value
 
     db.commit()
-    add_points(db, reporter_id, 10, "ISSUE_REPORTED", db_issue.id)
+    reporter = db.query(Profile).filter(Profile.id == reporter_id).first()
+    if reporter and (reporter.role or "").lower() == "citizen":
+        add_points(db, reporter_id, 10, "ISSUE_REPORTED", db_issue.id)
     db.refresh(db_issue)
     return db_issue
 
