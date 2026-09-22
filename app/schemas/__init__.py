@@ -34,6 +34,11 @@ from app.schemas.issue import (
     IssueResponse,
     IssueUpdate,
 )
+from app.schemas.notification import (
+    NotificationListResponse,
+    NotificationResponse,
+    UnreadCountResponse,
+)
 from app.schemas.profile import (
     ProfileBase,
     ProfileCreate,
@@ -98,4 +103,7 @@ __all__ = [
     "CitizenDashboardResponse",
     "StudentDashboardResponse",
     "IndustryDashboardResponse",
+    "NotificationResponse",
+    "NotificationListResponse",
+    "UnreadCountResponse",
 ]

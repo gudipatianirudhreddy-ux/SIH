@@ -7,6 +7,7 @@ from app.routers import (
     dashboard_router,
     evidence_router,
     issue_router,
+    notification_router,
     points_router,
     profile_router,
     solution_router,
@@ -63,6 +64,7 @@ app.include_router(evidence_router)
 app.include_router(solution_router)
 app.include_router(sponsorship_router)
 app.include_router(dashboard_router)
+app.include_router(notification_router)
 
 
 @app.get("/", summary="Root health check")

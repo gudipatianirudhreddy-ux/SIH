@@ -4,11 +4,12 @@ import uuid
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.models.enums import IssueStatus
+from app.models.enums import IssueStatus, NotificationType
 from app.models.issue import Issue, IssueMedia
 from app.models.profile import Profile
 from app.schemas.issue import IssueCreate, IssueUpdate
 from app.services.ml_classifier import IssueClassifier, get_issue_classifier
+from app.services.notification import create_notification, notify_interest_matches_for_issue
 from app.services.profile import add_points
 from app.services.status_transition import validate_issue_status_transition
 
@@ -62,6 +63,17 @@ def create_issue(
     reporter = db.query(Profile).filter(Profile.id == reporter_id).first()
     if reporter and (reporter.role or "").lower() in ["citizen", "student", "industrialist"]:
         add_points(db, reporter_id, 10, "ISSUE_REPORTED", db_issue.id)
+
+    create_notification(
+        db=db,
+        recipient_id=reporter_id,
+        notification_type=NotificationType.ISSUE_SUBMITTED,
+        title="Issue Submitted",
+        message=f"Your issue '{db_issue.title}' has been submitted successfully.",
+        issue_id=db_issue.id,
+    )
+    notify_interest_matches_for_issue(db, db_issue)
+
     db.refresh(db_issue)
     return db_issue
 
@@ -161,6 +173,7 @@ def update_issue(
     issue_update: IssueUpdate,
     profile: Optional[Profile] = None,
 ) -> Issue:
+    old_status = issue.status
     if issue_update.status is not None:
         validate_issue_status_transition(
             issue=issue,
@@ -185,6 +198,46 @@ def update_issue(
         issue.address = issue_update.address
 
     db.commit()
+
+    if issue_update.status is not None and issue.status != old_status:
+        if issue.status == IssueStatus.VERIFIED.value:
+            create_notification(
+                db=db,
+                recipient_id=issue.reporter_id,
+                notification_type=NotificationType.ISSUE_VERIFIED,
+                title="Issue Verified",
+                message=f"Your reported issue '{issue.title}' has been verified.",
+                issue_id=issue.id,
+            )
+            notify_interest_matches_for_issue(db, issue)
+        elif issue.status.upper() == "REJECTED":
+            create_notification(
+                db=db,
+                recipient_id=issue.reporter_id,
+                notification_type=NotificationType.ISSUE_REJECTED,
+                title="Issue Rejected",
+                message=f"Your reported issue '{issue.title}' has been rejected.",
+                issue_id=issue.id,
+            )
+        else:
+            create_notification(
+                db=db,
+                recipient_id=issue.reporter_id,
+                notification_type=NotificationType.ISSUE_STATUS_CHANGED,
+                title="Issue Status Updated",
+                message=f"Issue '{issue.title}' status changed to {issue.status}.",
+                issue_id=issue.id,
+            )
+            if issue.assigned_student_id and issue.assigned_student_id != issue.reporter_id:
+                create_notification(
+                    db=db,
+                    recipient_id=issue.assigned_student_id,
+                    notification_type=NotificationType.ISSUE_STATUS_CHANGED,
+                    title="Assigned Issue Updated",
+                    message=f"Issue '{issue.title}' status changed to {issue.status}.",
+                    issue_id=issue.id,
+                )
+
     db.refresh(issue)
     return issue
 

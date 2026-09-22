@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_authenticated_user, require_role
 from app.database import get_db
 from app.models.profile import Profile
-from app.schemas.collaboration import CollaborationResponse
+from app.schemas.collaboration import CollaborationResponse, CollaborationUpdate
 from app.services import collaboration as collaboration_service
 
 router = APIRouter(tags=["collaborations"])
@@ -47,3 +47,19 @@ def get_collaboration(
     db: Session = Depends(get_db),
 ):
     return collaboration_service.get_collaboration(db, collaboration_id, current_profile)
+
+
+@router.patch("/collaborations/{collaboration_id}/status", response_model=CollaborationResponse)
+def update_collaboration_status(
+    collaboration_id: uuid.UUID,
+    update_in: CollaborationUpdate,
+    current_profile: Profile = Depends(require_authenticated_user),
+    db: Session = Depends(get_db),
+):
+    return collaboration_service.update_collaboration_status(
+        db=db,
+        collaboration_id=collaboration_id,
+        new_status=update_in.status,
+        current_profile=current_profile,
+    )
+

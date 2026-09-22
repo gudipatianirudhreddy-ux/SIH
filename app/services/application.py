@@ -5,10 +5,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.application import Application
-from app.models.enums import ApplicationStatus, IssueStatus
+from app.models.enums import ApplicationStatus, IssueStatus, NotificationType
 from app.models.issue import Issue
 from app.models.profile import Profile
 from app.schemas.application import ApplicationCreate
+from app.services.notification import create_notification
 from app.services.profile import add_points
 
 
@@ -55,6 +56,17 @@ def create_application(
     )
     db.add(db_application)
     db.commit()
+
+    create_notification(
+        db=db,
+        recipient_id=issue.reporter_id,
+        notification_type=NotificationType.APPLICATION_SUBMITTED,
+        title="New Proposal Submitted",
+        message=f"A student has submitted a proposal for your issue '{issue.title}'.",
+        issue_id=issue.id,
+        application_id=db_application.id,
+    )
+
     db.refresh(db_application)
     return db_application
 
@@ -190,8 +202,38 @@ def update_application_status(
         )
         for other in other_pending:
             other.status = ApplicationStatus.REJECTED.value
+            create_notification(
+                db=db,
+                recipient_id=other.student_id,
+                notification_type=NotificationType.APPLICATION_REJECTED,
+                title="Proposal Rejected",
+                message=f"Your proposal for issue '{issue.title}' has been rejected as another applicant was accepted.",
+                issue_id=issue.id,
+                application_id=other.id,
+            )
         if not was_already_accepted:
             add_points(db, application.student_id, 10, "ISSUE_TAKEN", issue.id)
+
+        create_notification(
+            db=db,
+            recipient_id=application.student_id,
+            notification_type=NotificationType.APPLICATION_ACCEPTED,
+            title="Proposal Accepted",
+            message=f"Your proposal for issue '{issue.title}' has been accepted!",
+            issue_id=issue.id,
+            application_id=application.id,
+        )
+
+    elif new_status == ApplicationStatus.REJECTED:
+        create_notification(
+            db=db,
+            recipient_id=application.student_id,
+            notification_type=NotificationType.APPLICATION_REJECTED,
+            title="Proposal Rejected",
+            message=f"Your proposal for issue '{issue.title}' has been rejected.",
+            issue_id=issue.id,
+            application_id=application.id,
+        )
 
     db.commit()
     db.refresh(application)
@@ -252,12 +294,31 @@ def assign_student_to_issue(
     )
     for other in other_pending:
         other.status = ApplicationStatus.REJECTED.value
+        create_notification(
+            db=db,
+            recipient_id=other.student_id,
+            notification_type=NotificationType.APPLICATION_REJECTED,
+            title="Proposal Rejected",
+            message=f"Your proposal for issue '{issue.title}' has been rejected as another student was assigned.",
+            issue_id=issue.id,
+            application_id=other.id,
+        )
 
     # Assign student and update status to IN_PROGRESS
     issue.assigned_student_id = student_id
     issue.status = IssueStatus.IN_PROGRESS.value
     if not was_already_accepted:
         add_points(db, student_id, 10, "ISSUE_TAKEN", issue.id)
+
+    create_notification(
+        db=db,
+        recipient_id=student_id,
+        notification_type=NotificationType.APPLICATION_ACCEPTED,
+        title="Assigned to Issue",
+        message=f"You have been assigned to work on issue '{issue.title}'.",
+        issue_id=issue.id,
+        application_id=app_record.id,
+    )
 
     db.commit()
     db.refresh(issue)
