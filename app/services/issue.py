@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 import uuid
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.enums import IssueStatus
@@ -103,6 +103,41 @@ def list_issues(
         .limit(page_size)
         .all()
     )
+    return items, total
+
+
+def list_nearby_issues(
+    db: Session,
+    latitude: float,
+    longitude: float,
+    radius_km: float = 5.0,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Issue], int]:
+    """Return issues within a geographic radius using a Haversine distance filter."""
+    import math
+
+    radius_earth_km = 6371.0
+    lat_delta = radius_km / 111.0
+    lon_delta = radius_km / (111.0 * max(math.cos(math.radians(latitude)), 0.01))
+
+    query = db.query(Issue).filter(
+        Issue.latitude.isnot(None),
+        Issue.longitude.isnot(None),
+        Issue.latitude.between(latitude - lat_delta, latitude + lat_delta),
+        Issue.longitude.between(longitude - lon_delta, longitude + lon_delta),
+    )
+
+    distance = radius_earth_km * 2 * func.asin(func.sqrt(
+        func.pow(func.sin(func.radians(Issue.latitude - latitude) / 2), 2)
+        + func.cos(func.radians(latitude))
+        * func.cos(func.radians(Issue.latitude))
+        * func.pow(func.sin(func.radians(Issue.longitude - longitude) / 2), 2)
+    ))
+    query = query.filter(distance <= radius_km).order_by(distance.asc(), Issue.created_at.desc())
+
+    total = query.count()
+    items = query.offset((page - 1) * page_size).limit(page_size).all()
     return items, total
 
 
