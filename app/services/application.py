@@ -9,6 +9,7 @@ from app.models.enums import ApplicationStatus, IssueStatus
 from app.models.issue import Issue
 from app.models.profile import Profile
 from app.schemas.application import ApplicationCreate
+from app.services.profile import add_points
 
 
 def create_application(
@@ -160,6 +161,7 @@ def update_application_status(
                 detail="Only the issue reporter or an admin can reject an application",
             )
 
+    was_already_accepted = application.status == ApplicationStatus.ACCEPTED.value
     application.status = new_status.value
 
     # When an application is accepted:
@@ -181,6 +183,8 @@ def update_application_status(
         )
         for other in other_pending:
             other.status = ApplicationStatus.REJECTED.value
+        if not was_already_accepted:
+            add_points(db, application.student_id, 10, "ISSUE_TAKEN", issue.id)
 
     db.commit()
     db.refresh(application)
@@ -226,6 +230,7 @@ def assign_student_to_issue(
         )
 
     # Accept the student's application if pending
+    was_already_accepted = app_record.status == ApplicationStatus.ACCEPTED.value
     app_record.status = ApplicationStatus.ACCEPTED.value
 
     # Reject other pending applications
@@ -244,6 +249,8 @@ def assign_student_to_issue(
     # Assign student and update status to IN_PROGRESS
     issue.assigned_student_id = student_id
     issue.status = IssueStatus.IN_PROGRESS.value
+    if not was_already_accepted:
+        add_points(db, student_id, 10, "ISSUE_TAKEN", issue.id)
 
     db.commit()
     db.refresh(issue)
