@@ -2,12 +2,14 @@ import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from app.models.application import Application
 from app.models.collaboration import Collaboration
-from app.models.enums import ApplicationStatus, CollaborationStatus, IssueStatus
+from app.models.enums import ApplicationStatus, CollaborationStatus, IssueStatus, NotificationType
 from app.models.issue import Issue
 from app.models.profile import Profile
+from app.services.notification import create_notification
 
 
 def select_application_and_create_collaboration(
@@ -53,6 +55,48 @@ def select_application_and_create_collaboration(
     ).all()
     for other in other_pending:
         other.status = ApplicationStatus.REJECTED.value
+        create_notification(
+            db=db,
+            recipient_id=other.student_id,
+            notification_type=NotificationType.APPLICATION_REJECTED,
+            title="Proposal Rejected",
+            message=f"Your proposal for issue '{issue.title}' has been rejected.",
+            issue_id=issue.id,
+            application_id=other.id,
+        )
+
+    create_notification(
+        db=db,
+        recipient_id=application.student_id,
+        notification_type=NotificationType.APPLICATION_SELECTED,
+        title="Proposal Selected",
+        message="Your proposal for this issue has been selected by an industrialist.",
+        issue_id=issue.id,
+        application_id=application.id,
+        collaboration_id=collaboration.id,
+    )
+
+    create_notification(
+        db=db,
+        recipient_id=application.student_id,
+        notification_type=NotificationType.COLLABORATION_STARTED,
+        title="Collaboration Started",
+        message=f"An active collaboration has started for issue '{issue.title}'.",
+        issue_id=issue.id,
+        application_id=application.id,
+        collaboration_id=collaboration.id,
+    )
+
+    create_notification(
+        db=db,
+        recipient_id=industrialist.id,
+        notification_type=NotificationType.COLLABORATION_STARTED,
+        title="Collaboration Started",
+        message=f"You have started an active collaboration for issue '{issue.title}'.",
+        issue_id=issue.id,
+        application_id=application.id,
+        collaboration_id=collaboration.id,
+    )
 
     db.commit()
     db.refresh(collaboration)
@@ -79,3 +123,51 @@ def get_collaboration(db: Session, collaboration_id: uuid.UUID, profile: Profile
     if role != "admin" and profile.id not in (collaboration.student_id, collaboration.industrialist_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not part of this collaboration")
     return collaboration
+
+
+def update_collaboration_status(
+    db: Session,
+    collaboration_id: uuid.UUID,
+    new_status: CollaborationStatus,
+    current_profile: Profile,
+) -> Collaboration:
+    collaboration = get_collaboration(db, collaboration_id, current_profile)
+    collaboration.status = new_status.value
+    if new_status == CollaborationStatus.COMPLETED:
+        collaboration.completed_at = func.now()
+        notification_type = NotificationType.COLLABORATION_COMPLETED
+        title = "Collaboration Completed"
+        message = "The active collaboration has been marked as completed."
+    elif new_status == CollaborationStatus.CANCELLED:
+        notification_type = NotificationType.COLLABORATION_CANCELLED
+        title = "Collaboration Cancelled"
+        message = "The active collaboration has been cancelled."
+    else:
+        notification_type = None
+
+    if notification_type:
+        create_notification(
+            db=db,
+            recipient_id=collaboration.student_id,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            collaboration_id=collaboration.id,
+            issue_id=collaboration.issue_id,
+            application_id=collaboration.application_id,
+        )
+        create_notification(
+            db=db,
+            recipient_id=collaboration.industrialist_id,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            collaboration_id=collaboration.id,
+            issue_id=collaboration.issue_id,
+            application_id=collaboration.application_id,
+        )
+
+    db.commit()
+    db.refresh(collaboration)
+    return collaboration
+

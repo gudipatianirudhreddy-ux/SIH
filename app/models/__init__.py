@@ -6,12 +6,14 @@ from app.models.enums import (
     EvidenceType,
     IssuePriority,
     IssueStatus,
+    NotificationType,
     SolutionStatus,
     SponsorshipStatus,
 )
 from app.models.evidence import Evidence
 from app.models.interest import IndustrialistInterest, StudentInterest
 from app.models.issue import Issue, IssueMedia, IssueVerification
+from app.models.notification import Notification
 from app.models.point_transaction import PointTransaction
 from app.models.profile import Profile
 from app.models.solution import Solution, SolutionReview
@@ -23,6 +25,8 @@ __all__ = [
     "Issue",
     "IssueMedia",
     "IssueVerification",
+    "Notification",
+    "NotificationType",
     "StudentInterest",
     "IndustrialistInterest",
     "Solution",
